@@ -20,6 +20,7 @@ package com.github.zvreifnitz.common.threading;
 import com.github.zvreifnitz.common.lifecycle.AbstractOpenable;
 import com.github.zvreifnitz.common.lifecycle.Openable;
 import com.github.zvreifnitz.common.utils.Exceptions;
+import com.github.zvreifnitz.common.utils.Openables;
 import com.github.zvreifnitz.common.utils.Preconditions;
 
 import java.util.Collection;
@@ -38,13 +39,15 @@ public final class OpenableExecutorService extends AbstractOpenable implements E
     }
 
     @Override
-    protected void performOpen() {
+    protected void performInit() {
         final ExecutorService executorService = Preconditions.checkNotNull(this.executorSupplier.get(), "executor");
-        if (executorService instanceof Openable) {
-            ((Openable)executorService).initAsDependency(this);
-            ((Openable)executorService).openAsDependency(this);
-        }
+        Openables.initAsDependency(executorService, this);
         this.executor = executorService;
+    }
+
+    @Override
+    protected void performOpen() {
+        Openables.openAsDependency(this.executor, this);
     }
 
     @Override
@@ -55,7 +58,7 @@ public final class OpenableExecutorService extends AbstractOpenable implements E
             return;
         }
         if (executorService instanceof Openable) {
-            ((Openable)executorService).closeAsDependency(this);
+            Openables.closeAsDependency(executorService, this);
         } else {
             executorService.shutdown();
             while (!executorService.isTerminated()) {
@@ -133,6 +136,7 @@ public final class OpenableExecutorService extends AbstractOpenable implements E
     }
 
     private ExecutorService getExecutor() {
+        this.checkOpen();
         final ExecutorService result = this.executor;
         if (result == null) {
             this.throwNotOpen();
