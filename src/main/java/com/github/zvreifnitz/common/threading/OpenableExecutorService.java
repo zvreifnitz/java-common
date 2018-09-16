@@ -19,7 +19,6 @@ package com.github.zvreifnitz.common.threading;
 
 import com.github.zvreifnitz.common.lifecycle.AbstractOpenable;
 import com.github.zvreifnitz.common.lifecycle.EmptyOpenable;
-import com.github.zvreifnitz.common.lifecycle.Openable;
 import com.github.zvreifnitz.common.utils.Exceptions;
 import com.github.zvreifnitz.common.utils.Openables;
 import com.github.zvreifnitz.common.utils.Preconditions;
