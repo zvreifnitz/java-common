@@ -18,6 +18,7 @@
 package com.github.zvreifnitz.common.threading;
 
 import com.github.zvreifnitz.common.lifecycle.AbstractOpenable;
+import com.github.zvreifnitz.common.lifecycle.Openable;
 import com.github.zvreifnitz.common.utils.Exceptions;
 import com.github.zvreifnitz.common.utils.Preconditions;
 
@@ -38,7 +39,12 @@ public final class OpenableExecutorService extends AbstractOpenable implements E
 
     @Override
     protected void performOpen() {
-        this.executor = Preconditions.checkNotNull(this.executorSupplier.get(), "executor");
+        final ExecutorService executorService = Preconditions.checkNotNull(this.executorSupplier.get(), "executor");
+        if (executorService instanceof Openable) {
+            ((Openable)executorService).initAsDependency(this);
+            ((Openable)executorService).openAsDependency(this);
+        }
+        this.executor = executorService;
     }
 
     @Override
@@ -48,11 +54,15 @@ public final class OpenableExecutorService extends AbstractOpenable implements E
         if (executorService == null) {
             return;
         }
-        executorService.shutdown();
-        while (!executorService.isTerminated()) {
-            try {
-                executorService.awaitTermination(1, TimeUnit.SECONDS);
-            } catch (final Exception ignored) {
+        if (executorService instanceof Openable) {
+            ((Openable)executorService).closeAsDependency(this);
+        } else {
+            executorService.shutdown();
+            while (!executorService.isTerminated()) {
+                try {
+                    executorService.awaitTermination(1, TimeUnit.SECONDS);
+                } catch (final Exception ignored) {
+                }
             }
         }
     }
