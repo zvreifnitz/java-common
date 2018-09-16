@@ -18,7 +18,6 @@
 package com.github.zvreifnitz.common.threading;
 
 import com.github.zvreifnitz.common.lifecycle.AbstractOpenable;
-import com.github.zvreifnitz.common.lifecycle.Openable;
 import com.github.zvreifnitz.common.utils.Exceptions;
 import com.github.zvreifnitz.common.utils.Openables;
 import com.github.zvreifnitz.common.utils.Preconditions;
@@ -57,7 +56,7 @@ public final class OpenableScheduledExecutorService extends AbstractOpenable imp
         if (executorService == null) {
             return;
         }
-        if (executorService instanceof Openable) {
+        if (Openables.isOpenable(executorService)) {
             Openables.closeAsDependency(executorService, this);
         } else {
             executorService.shutdown();

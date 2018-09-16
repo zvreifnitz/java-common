@@ -57,7 +57,7 @@ public final class OpenableExecutorService extends AbstractOpenable implements E
         if (executorService == null) {
             return;
         }
-        if (executorService instanceof Openable) {
+        if (Openables.isOpenable(executorService)) {
             Openables.closeAsDependency(executorService, this);
         } else {
             executorService.shutdown();
