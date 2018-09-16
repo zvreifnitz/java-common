@@ -23,4 +23,9 @@ public final class Preconditions {
         return ((arg == null) ? Exceptions.throwNullPointerException(argName) : arg);
     }
 
+    public static void checkState(final boolean condition, final String msg) {
+        if (!condition) {
+            Exceptions.throwIllegalStateException(msg);
+        }
+    }
 }

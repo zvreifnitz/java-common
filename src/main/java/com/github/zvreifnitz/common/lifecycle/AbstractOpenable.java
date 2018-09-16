@@ -17,7 +17,6 @@
 
 package com.github.zvreifnitz.common.lifecycle;
 
-import com.github.zvreifnitz.common.utils.Exceptions;
 import com.github.zvreifnitz.common.utils.Preconditions;
 
 import java.util.Arrays;
@@ -31,10 +30,23 @@ public abstract class AbstractOpenable implements Openable {
     private final Map<Openable, Boolean> owners;
     private final SelfOpenable self;
 
+    private volatile boolean init;
+    private volatile boolean open;
+
     protected AbstractOpenable(final Openable... dependencies) {
         this.dependencies = compact(dependencies);
         this.owners = new HashMap<>();
         this.self = new SelfOpenable();
+    }
+
+    @Override
+    public final boolean isInit() {
+        return this.isInitAsDependency(self);
+    }
+
+    @Override
+    public final boolean isOpen() {
+        return this.isOpenAsDependency(self);
     }
 
     @Override
@@ -53,16 +65,18 @@ public abstract class AbstractOpenable implements Openable {
     }
 
     @Override
-    public final boolean isInit() {
+    public final boolean isInitAsDependency(final Openable owner) {
+        Preconditions.checkNotNull(owner, "owner");
         synchronized (this.owners) {
-            return this.owners.containsKey(self);
+            return this.owners.containsKey(owner);
         }
     }
 
     @Override
-    public final boolean isOpen() {
+    public final boolean isOpenAsDependency(final Openable owner) {
+        Preconditions.checkNotNull(owner, "owner");
         synchronized (this.owners) {
-            return Boolean.TRUE.equals(this.owners.get(self));
+            return Boolean.TRUE.equals(this.owners.get(owner));
         }
     }
 
@@ -78,12 +92,9 @@ public abstract class AbstractOpenable implements Openable {
             if (this.owners.containsKey(owner)) {
                 return;
             }
-            if (this.owners.size() == 0) {
-                try {
-                    this.performInit();
-                } catch (final Exception exc) {
-                    Exceptions.throwUnchecked(exc);
-                }
+            if (!this.init) {
+                this.performInit();
+                this.init = true;
             }
             this.owners.put(owner, Boolean.FALSE);
         }
@@ -100,17 +111,14 @@ public abstract class AbstractOpenable implements Openable {
         synchronized (this.owners) {
             final Boolean existing = this.owners.get(owner);
             if (existing == null) {
-                throw new RuntimeException("Openable is not initialised");
+                this.throwNotInit();
             }
             if (Boolean.TRUE.equals(existing)) {
                 return;
             }
-            if (this.noneOpen()) {
-                try {
-                    this.performOpen();
-                } catch (final Exception exc) {
-                    Exceptions.throwUnchecked(exc);
-                }
+            if (!this.open) {
+                this.performOpen();
+                this.open = true;
             }
             this.owners.put(owner, Boolean.TRUE);
         }
@@ -119,49 +127,58 @@ public abstract class AbstractOpenable implements Openable {
     @Override
     public final void closeAsDependency(final Openable owner) {
         Preconditions.checkNotNull(owner, "owner");
-        Exception firstException = null;
         synchronized (this.owners) {
             if (!Boolean.TRUE.equals(this.owners.get(owner))) {
                 return;
             }
             this.owners.put(owner, Boolean.FALSE);
-            if (this.noneOpen()) {
-                try {
-                    this.performClose();
-                } catch (final Exception exc) {
-                    firstException = exc;
-                }
+            if (this.open && this.noneOpen()) {
+                this.open = false;
+                this.performClose();
             }
         }
         if (this.dependencies != null) {
             for (int i = (this.dependencies.length - 1); i >= 0; i--) {
-                try {
-                    this.dependencies[i].closeAsDependency(owner);
-                } catch (final Exception exc) {
-                    firstException = ((firstException != null) ? firstException : exc);
-                }
+                this.dependencies[i].closeAsDependency(owner);
             }
-        }
-        if (firstException != null) {
-            Exceptions.throwUnchecked(firstException);
         }
     }
 
     private boolean noneOpen() {
-        boolean result = false;
+        boolean anyOpen = false;
         for (final Boolean open : this.owners.values()) {
-            result |= Boolean.TRUE.equals(open);
+            anyOpen |= Boolean.TRUE.equals(open);
         }
-        return result;
+        return !anyOpen;
     }
 
-    protected void performInit() throws Exception {
+    protected final void checkInit() {
+        if (!this.init) {
+            throwNotInit();
+        }
     }
 
-    protected void performOpen() throws Exception {
+    protected final void checkOpen() {
+        if (!this.open) {
+            this.throwNotOpen();
+        }
     }
 
-    protected void performClose() throws Exception {
+    protected final void throwNotInit() {
+        Preconditions.checkState(false, "Openable is not initialised");
+    }
+
+    protected final void throwNotOpen() {
+        Preconditions.checkState(false, "Openable is not open");
+    }
+
+    protected void performInit() {
+    }
+
+    protected void performOpen() {
+    }
+
+    protected void performClose() {
     }
 
     private static Openable[] compact(final Openable[] input) {
@@ -194,6 +211,16 @@ public abstract class AbstractOpenable implements Openable {
 
         @Override
         public void close() {
+        }
+
+        @Override
+        public boolean isInitAsDependency(final Openable owner) {
+            return false;
+        }
+
+        @Override
+        public boolean isOpenAsDependency(final Openable owner) {
+            return false;
         }
 
         @Override

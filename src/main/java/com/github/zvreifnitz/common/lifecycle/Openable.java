@@ -17,12 +17,15 @@
 
 package com.github.zvreifnitz.common.lifecycle;
 
-public interface Openable {
+public interface Openable extends AutoCloseable {
     boolean isInit();
     boolean isOpen();
     void init();
     void open();
     void close();
+
+    boolean isInitAsDependency(final Openable owner);
+    boolean isOpenAsDependency(final Openable owner);
     void initAsDependency(final Openable owner);
     void openAsDependency(final Openable owner);
     void closeAsDependency(final Openable owner);

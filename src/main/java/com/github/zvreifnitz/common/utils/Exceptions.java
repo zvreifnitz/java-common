@@ -32,4 +32,16 @@ public final class Exceptions {
     public static <T> T throwNullPointerException(final String argName) {
         throw new NullPointerException("Argument '" + argName + "' is null");
     }
+
+    public static <T> T throwIllegalStateException(final String msg) {
+        throw new IllegalStateException(msg);
+    }
+
+    public static <T> T throwRuntimeException(final String msg) {
+        throw new RuntimeException(msg);
+    }
+
+    public static <T> T thrownUnsupportedMethodException(final String methodName) {
+        throw new UnsupportedOperationException("Method '" + methodName + "' is not supported");
+    }
 }
