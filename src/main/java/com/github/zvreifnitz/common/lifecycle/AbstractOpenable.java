@@ -28,7 +28,7 @@ public abstract class AbstractOpenable implements Openable {
 
     private final Openable[] dependencies;
     private final Map<Openable, Boolean> owners;
-    private final SelfOpenable self;
+    private final EmptyOpenable self;
 
     private volatile boolean init;
     private volatile boolean open;
@@ -36,32 +36,32 @@ public abstract class AbstractOpenable implements Openable {
     protected AbstractOpenable(final Openable... dependencies) {
         this.dependencies = compact(dependencies);
         this.owners = new HashMap<>();
-        this.self = new SelfOpenable();
+        this.self = new EmptyOpenable();
     }
 
     @Override
     public final boolean isInit() {
-        return this.isInitAsDependency(self);
+        return this.isInitAsDependency(this.self);
     }
 
     @Override
     public final boolean isOpen() {
-        return this.isOpenAsDependency(self);
+        return this.isOpenAsDependency(this.self);
     }
 
     @Override
     public final void init() {
-        this.initAsDependency(self);
+        this.initAsDependency(this.self);
     }
 
     @Override
     public final void open() {
-        this.openAsDependency(self);
+        this.openAsDependency(this.self);
     }
 
     @Override
     public final void close() {
-        this.closeAsDependency(self);
+        this.closeAsDependency(this.self);
     }
 
     @Override
@@ -187,52 +187,5 @@ public abstract class AbstractOpenable implements Openable {
         }
         final Openable[] result = Arrays.stream(input).filter(Objects::nonNull).toArray(Openable[]::new);
         return (((result == null) || (result.length == 0)) ? null : result);
-    }
-
-    private final static class SelfOpenable implements Openable {
-
-        @Override
-        public boolean isInit() {
-            return false;
-        }
-
-        @Override
-        public boolean isOpen() {
-            return false;
-        }
-
-        @Override
-        public void init() {
-        }
-
-        @Override
-        public void open() {
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public boolean isInitAsDependency(final Openable owner) {
-            return false;
-        }
-
-        @Override
-        public boolean isOpenAsDependency(final Openable owner) {
-            return false;
-        }
-
-        @Override
-        public void initAsDependency(final Openable owner) {
-        }
-
-        @Override
-        public void openAsDependency(final Openable owner) {
-        }
-
-        @Override
-        public void closeAsDependency(final Openable owner) {
-        }
     }
 }

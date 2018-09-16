@@ -18,6 +18,7 @@
 package com.github.zvreifnitz.common.threading;
 
 import com.github.zvreifnitz.common.lifecycle.AbstractOpenable;
+import com.github.zvreifnitz.common.lifecycle.EmptyOpenable;
 import com.github.zvreifnitz.common.utils.Exceptions;
 import com.github.zvreifnitz.common.utils.Openables;
 import com.github.zvreifnitz.common.utils.Preconditions;
@@ -30,23 +31,25 @@ import java.util.function.Supplier;
 public final class OpenableScheduledExecutorService extends AbstractOpenable implements ScheduledExecutorService {
 
     private final Supplier<ScheduledExecutorService> executorSupplier;
+    private final EmptyOpenable self;
 
     private volatile ScheduledExecutorService executor;
 
     OpenableScheduledExecutorService(final Supplier<ScheduledExecutorService> executorSupplier) {
         this.executorSupplier = Preconditions.checkNotNull(executorSupplier, "executorSupplier");
+        this.self = new EmptyOpenable();
     }
 
     @Override
     protected void performInit() {
         final ScheduledExecutorService executorService = Preconditions.checkNotNull(this.executorSupplier.get(), "executor");
-        Openables.initAsDependency(executorService, this);
+        Openables.initAsDependency(executorService, this.self);
         this.executor = executorService;
     }
 
     @Override
     protected void performOpen() {
-        Openables.openAsDependency(this.executor, this);
+        Openables.openAsDependency(this.executor, this.self);
     }
 
     @Override
@@ -57,7 +60,7 @@ public final class OpenableScheduledExecutorService extends AbstractOpenable imp
             return;
         }
         if (Openables.isOpenable(executorService)) {
-            Openables.closeAsDependency(executorService, this);
+            Openables.closeAsDependency(executorService, this.self);
         } else {
             executorService.shutdown();
             while (!executorService.isTerminated()) {
